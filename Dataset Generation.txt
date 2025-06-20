@@ -1,0 +1,114 @@
+Step 1 : Order Quantity
+Most people get fewer number of items (i.e, 1-5 or 6-10) anything above 10 usually indicates some kind of office/house party.
+=CHOOSE(
+  MATCH(RAND(), {0,0.7,0.85,0.98}),
+  RANDBETWEEN(1,5),        // 50% probability (0-0.7)
+  RANDBETWEEN(6,10),       // 30% probability (0.7-0.85)
+  RANDBETWEEN(11,15),      // 15% probability (0.85-0.98)
+  RANDBETWEEN(16,20)       // 5% probability (0.98-1)
+)
+
+Step 2 : Order Value in Rs
+Order Value generation depending on Order Quantity
+=RANDBETWEEN(
+   XLOOKUP(D2, {1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20}, 
+      {80;100;220;280;340;400;460;520;580;640;700;760;820;880;940;1000;1060;1120;1180;1240}),
+   XLOOKUP(D2, {1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20}, 
+      {180;300;400;500;600;700;800;900;1000;1100;1200;1300;1400;1500;1600;1700;1800;1900;2000;2100})
+)
+
+Step 3 : City 
+The distribution of 100k rows to cities depend on the population of the 8 cities.
+=CHOOSE(
+  MATCH(RAND(), {0,0.2,0.5,0.6,0.7,0.8,0.87,0.93,1}),
+  "Mumbai",      // 0–0.2 (20%)
+  "Delhi",       // 0.2–0.5 (30%)
+  "Bangalore",   // 0.5–0.6 (10%)
+  "Kolkata",   // 0.60–0.70 (10%)
+  "Chennai",     // 0.70–0.80 (10%)
+  "Hyderabad",     // 0.80–0.87 (7%)
+  "Pune",        // 0.87–0.93 (6%)
+  "Ahmedabad"    // 0.93–1 (7%)
+)
+
+Step 4 : Order_Timestamp
+1 may 2025 to 1 june 2025
+=DATE(2025,5,1) + RANDBETWEEN(0,30) + TIME(RANDBETWEEN(10,21),RANDBETWEEN(0,59),RANDBETWEEN(0,59))
+Then converted the cell format to custom (dd/mm/yy hh:mm:ss AM/PM )
+
+Step 5 : Order_Pickup_Timestamp
+F2 + cooking time (large orders take time to prepare so does small number of items) + delivery_guy wait time (sometimes delivery guy is late to pickup order which is quite rare hence the weights)
+=F2 + TIME(0,
+  RANDBETWEEN(
+    XLOOKUP(
+      IF(D2<=5,5,IF(D2<=10,10,IF(D2<=15,15,20))),
+      {5;10;15;20},
+      {10;20;30;40}
+    ),
+    XLOOKUP(
+      IF(D2<=5,5,IF(D2<=10,10,IF(D2<=15,15,20))),
+      {5;10;15;20},
+      {20;30;40;50}
+    )
+  ) + 
+  CHOOSE(
+    MATCH(RAND(),{0;0.75;0.80;0.88;0.90;0.92;0.96;0.98;0.99;0.995;1}),
+    0,1,2,3,4,5,6,7,8,9,10
+  ),
+  RANDBETWEEN(0,59)
+)
+Here both cooking time and waiting time by rider is included
+
+Step 6 : Order_Delivery_Timestamp
+based on average commute time of these cities
+=G2 + TIME(0,
+  CHOOSE(
+    MATCH(E2,{"Mumbai","Delhi","Bangalore","Hyderabad","Chennai","Kolkata","Pune","Ahmedabad"},0),
+    RANDBETWEEN(8,22),   // Mumbai: 8-22 mins
+    RANDBETWEEN(8,22),   // Delhi: 8-22 mins  
+    RANDBETWEEN(6,20),   // Bangalore: 6-20 mins
+    RANDBETWEEN(6,20),   // Hyderabad: 6-20 mins
+    RANDBETWEEN(7,22),   // Chennai: 7-22 mins
+    RANDBETWEEN(7,22),   // Kolkata: 7-22 mins
+    RANDBETWEEN(5,18),   // Pune: 5-18 mins
+    RANDBETWEEN(5,18)    // Ahmedabad: 5-18 mins
+  ),
+  RANDBETWEEN(0,59)
+)
+
+Step 7 : Order_Id 
+alphanumeric
+=UPPER(LEFT(E2,5)) & UPPER(LEFT(TEXT(F2,"MMM"),3)) & TEXT(F2,"YY") & TEXT(COUNTIFS($E$2:E2, E2), "00000")
+
+Unique order id for each city across time for upto 100000 orders in a city each month
+
+Order_rating
+Most of the times customer dont give reviews (Hence NULL values) only in the case of overly satisfied/ or unsatisfied customers, take time to give review 
+=IF(RAND() <= 0.8, "",  // 80% NULL
+   IF(RAND() <= 0.5, 5,  // 10% of total (50% of non-NULL)
+      IF(RAND() <= 0.35, 4,  // 3.5% of total (17.5% of non-NULL)
+         IF(RAND() <= 0.5, 3,  // 3.5% of total (17.5% of non-NULL)
+            IF(RAND() <= 0.75, 2, 1)  // 1.5% each (7.5% of non-NULL)
+         )
+      )
+   )
+)
+
+Step 8 : 
+Set up a sheet 2 where I had distributed a number of delivery_Ids across cities on the basis of population percentage. For example I chose the numbers as Delhi had round to 30,000 orders in a month so 1,000 a day, If 1 delivery guy on an average works for 12 hours making 16 deliveries it would take 60 such employees.
+
+Step 9 : delivery_person_id
+first set up delivery_person_id and respective city in sheet2
+then
+=IF(E2="Delhi", INDEX(Sheet2!$A$2:$A$61, RANDBETWEEN(1, ROWS(Sheet2!$A$2:$A$61))),
+ IF(E2="Mumbai", INDEX(Sheet2!$A$62:$A$101, RANDBETWEEN(1, ROWS(Sheet2!$A$62:$A$101))),
+ IF(E2="Bangalore", INDEX(Sheet2!$A$102:$A$121, RANDBETWEEN(1, ROWS(Sheet2!$A$102:$A$121))),
+ IF(E2="Kolkata", INDEX(Sheet2!$A$122:$A$141, RANDBETWEEN(1, ROWS(Sheet2!$A$122:$A$141))),
+ IF(E2="Chennai", INDEX(Sheet2!$A$142:$A$161, RANDBETWEEN(1, ROWS(Sheet2!$A$142:$A$161))),
+ IF(E2="Hyderabad", INDEX(Sheet2!$A$162:$A$176, RANDBETWEEN(1, ROWS(Sheet2!$A$162:$A$176))),
+ IF(E2="Pune", INDEX(Sheet2!$A$177:$A$191, RANDBETWEEN(1, ROWS(Sheet2!$A$177:$A$191))),
+ IF(E2="Ahmedabad", INDEX(Sheet2!$A$192:$A$206, RANDBETWEEN(1, ROWS(Sheet2!$A$192:$A$206))),
+ ""))))
+))))
+
+
