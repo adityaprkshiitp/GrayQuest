@@ -15,4 +15,4 @@ The "Dataset Generation.txt" file contains all the steps to the generation of th
 
 ## Solution
 An Excel dashboard which returns the top 5 delivery executives based on average delivery time and on number of deliveries made with two filters (i.e City and week).
-![Solution DashBoard] (Solution.png)
+![Solution DashBoard](Solution.png)
